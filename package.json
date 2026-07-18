@@ -1,0 +1,24 @@
+{
+  "name": "cargoaudit-lite",
+  "version": "1.0.0",
+  "description": "Sample freight-cost-audit web app with a Playwright Web + API test automation framework, demonstrating page-object architecture, discrepancy-flagging business logic, regression/smoke test separation, and CI integration.",
+  "scripts": {
+    "start:api": "node mock-api/server.js",
+    "start:app": "npx http-server mock-app -p 5173 -s",
+    "dev": "concurrently \"npm run start:api\" \"npm run start:app\"",
+    "test": "playwright test",
+    "test:regression": "playwright test --grep-invert @smoke",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:api": "playwright test test-suites/api",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^20.14.0",
+    "concurrently": "^8.2.2",
+    "express": "^4.19.2",
+    "http-server": "^14.1.1",
+    "typescript": "^5.5.0"
+  },
+  "license": "MIT"
+}

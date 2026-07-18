@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CargoAudit Lite</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>CargoAudit Lite</h1>
+    <p class="subtitle">Freight cost audit — sample demo app</p>
+  </header>
+
+  <main>
+    <section class="add-shipment">
+      <h2>Add Shipment</h2>
+      <form id="shipment-form">
+        <input name="reference" placeholder="Reference (e.g. SHP-2001)" required />
+        <input name="carrier" placeholder="Carrier" required />
+        <input name="quotedCost" type="number" placeholder="Quoted cost" required />
+        <input name="invoicedCost" type="number" placeholder="Invoiced cost" required />
+        <button type="submit">Add Shipment</button>
+      </form>
+    </section>
+
+    <section class="shipment-list">
+      <h2>Shipments</h2>
+      <table id="shipment-table">
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Carrier</th>
+            <th>Quoted</th>
+            <th>Invoiced</th>
+            <th>Status</th>
+            <th>Discrepancy</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="shipment-rows"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

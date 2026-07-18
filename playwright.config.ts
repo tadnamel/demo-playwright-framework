@@ -1,0 +1,59 @@
+import { defineConfig, devices } from '@playwright/test';
+
+/**
+ * Playwright configuration for the CargoAudit Lite sample project.
+ *
+ * webServer[] automatically boots the mock API and the static mock app
+ * before tests run (and tears them down after), so `npm test` works
+ * standalone with no manual setup.
+ *
+ * Tests tagged @smoke are a lightweight subset intended for a nightly
+ * pipeline run; the full suite is treated as the regression pass.
+ */
+export default defineConfig({
+  testDir: './test-suites',
+  timeout: 30_000,
+  expect: { timeout: 5_000 },
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : undefined,
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+  ],
+  webServer: [
+    {
+      command: 'node mock-api/server.js',
+      port: 4000,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: 'npx http-server mock-app -p 5173 -s',
+      port: 5173,
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
+  use: {
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+  projects: [
+    {
+      name: 'e2e',
+      testDir: './test-suites/e2e',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:5173',
+      },
+    },
+    {
+      name: 'api',
+      testDir: './test-suites/api',
+      use: {
+        baseURL: 'http://localhost:4000',
+      },
+    },
+  ],
+});

@@ -13,6 +13,8 @@ export class ShipmentPage {
   readonly invoicedCostInput: Locator;
   readonly addShipmentButton: Locator;
   readonly rows: Locator;
+  readonly roleSelect: Locator;
+  readonly actionError: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -22,6 +24,12 @@ export class ShipmentPage {
     this.invoicedCostInput = page.locator('input[name="invoicedCost"]');
     this.addShipmentButton = page.getByRole('button', { name: 'Add Shipment' });
     this.rows = page.getByTestId('shipment-row');
+    this.roleSelect = page.locator('#role-select');
+    this.actionError = page.getByTestId('action-error');
+  }
+
+  async actAsRole(role: 'agent' | 'manager') {
+    await this.roleSelect.selectOption(role);
   }
 
   async goto() {
@@ -60,5 +68,9 @@ export class ShipmentPage {
 
   async expectStatus(reference: string, status: 'pending' | 'approved' | 'rejected') {
     await expect(this.rowByReference(reference).getByTestId('status')).toHaveText(status);
+  }
+
+  async expectActionErrorContains(text: string) {
+    await expect(this.actionError).toContainText(text);
   }
 }

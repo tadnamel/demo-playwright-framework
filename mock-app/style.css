@@ -34,3 +34,25 @@ th { background: #f2f2f2; }
 
 .flagged { color: #b91c1c; font-weight: 600; }
 .ok { color: #6b7280; }
+
+.role-select {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #374151;
+}
+.role-select select {
+  margin-left: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+}
+
+#action-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}

@@ -38,12 +38,15 @@ test.describe('Freight cost audit workflow', () => {
     await shipmentPage.expectNoDiscrepancy('SHP-2002');
   });
 
-  test('@smoke approves a pending shipment', async ({ shipmentPage }) => {
+  test('@smoke approves a non-flagged pending shipment as agent', async ({ shipmentPage }) => {
+    // SHP-1001 is not flagged, so the default 'agent' role may approve it.
     await shipmentPage.approveShipment('SHP-1001');
     await shipmentPage.expectStatus('SHP-1001', 'approved');
   });
 
-  test('rejects a flagged shipment', async ({ shipmentPage }) => {
+  test('rejects a flagged shipment as manager', async ({ shipmentPage }) => {
+    // SHP-1002 is flagged, so this requires switching to the 'manager' role first.
+    await shipmentPage.actAsRole('manager');
     await shipmentPage.rejectShipment('SHP-1002');
     await shipmentPage.expectStatus('SHP-1002', 'rejected');
   });
@@ -54,5 +57,21 @@ test.describe('Freight cost audit workflow', () => {
     const row = shipmentPage.rowByReference('SHP-1003');
     await expect(row.getByTestId('approve-btn')).toBeDisabled();
     await expect(row.getByTestId('reject-btn')).toBeDisabled();
+  });
+
+  test.describe('Role-based authorization (UI)', () => {
+    test('agent role sees an error when trying to approve a flagged shipment', async ({ shipmentPage }) => {
+      await shipmentPage.actAsRole('agent');
+      await shipmentPage.approveShipment('SHP-1002');
+
+      await shipmentPage.expectActionErrorContains('Only a manager');
+      await shipmentPage.expectStatus('SHP-1002', 'pending');
+    });
+
+    test('switching to manager role allows approving a flagged shipment', async ({ shipmentPage }) => {
+      await shipmentPage.actAsRole('manager');
+      await shipmentPage.approveShipment('SHP-1002');
+      await shipmentPage.expectStatus('SHP-1002', 'approved');
+    });
   });
 });

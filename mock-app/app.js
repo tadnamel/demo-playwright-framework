@@ -40,9 +40,42 @@ function renderShipments(shipments) {
   );
 }
 
+function currentRole() {
+  const select = document.getElementById('role-select');
+  return select ? select.value : 'agent';
+}
+
 async function updateStatus(id, action) {
-  await fetch(`${API_BASE}/shipments/${id}/${action}`, { method: 'PATCH' });
+  const res = await fetch(`${API_BASE}/shipments/${id}/${action}`, {
+    method: 'PATCH',
+    headers: { 'x-user-role': currentRole() },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    // Surface auth/conflict errors in a data-testid'd element so tests can assert on them.
+    showActionError(body.error || `Request failed (${res.status})`);
+    return;
+  }
+
+  clearActionError();
   await fetchShipments();
+}
+
+function showActionError(message) {
+  let el = document.getElementById('action-error');
+  if (!el) {
+    el = document.createElement('p');
+    el.id = 'action-error';
+    el.dataset.testid = 'action-error';
+    document.querySelector('.shipment-list').prepend(el);
+  }
+  el.textContent = message;
+}
+
+function clearActionError() {
+  const el = document.getElementById('action-error');
+  if (el) el.remove();
 }
 
 document.getElementById('shipment-form').addEventListener('submit', async (e) => {

@@ -9,15 +9,23 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * Tests tagged @smoke are a lightweight subset intended for a nightly
  * pipeline run; the full suite is treated as the regression pass.
+ *
+ * IMPORTANT: both the e2e and api projects exercise the SAME shared,
+ * stateful mock API server (in-memory shipments + audit log, with a
+ * test-only /__reset endpoint). Running tests in parallel would let
+ * multiple tests reset/mutate that shared state at the same time,
+ * causing cross-test interference. workers is fixed to 1 so the whole
+ * suite runs serially against the shared backend — the trade-off is a
+ * slightly slower run in exchange for deterministic results.
  */
 export default defineConfig({
   testDir: './test-suites',
   timeout: 30_000,
   expect: { timeout: 5_000 },
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: 1,
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report' }],

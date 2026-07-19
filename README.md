@@ -16,6 +16,17 @@ tooling, the same testing patterns and architecture I use professionally.
 
 - **End-to-end business logic testing**: discrepancy-flagging rules, approve/reject
   workflows, and state transitions — not just generic CRUD
+- **Configurable business rules**: the discrepancy tolerance is driven by an
+  env var with a sane default, plus a per-carrier override map — not a magic
+  hardcoded constant
+- **Role-based authorization**: a lightweight mock-auth layer (via an
+  `x-user-role` header) requires a `manager` role to action any shipment
+  that's flagged with a discrepancy; an `agent` can freely action clean ones
+- **Audit logging**: every approve/reject is recorded with who, what, and
+  when, exposed via a `GET /audit-log` endpoint
+- **Edge case coverage**: zero-cost shipments, negative costs (rejected
+  outright), credits/refunds (never flagged), very large discrepancies, and
+  concurrent/double status-change attempts (guarded with a 409 response)
 - **Page Object Model** for the UI layer (`src/pages`)
 - **Custom Playwright fixtures**, including automatic backend state reset
   between tests for isolation (`src/fixtures`)
@@ -54,6 +65,26 @@ npm run test:api      # API suite only
 npm run dev            # run the app + API manually in the browser at localhost:5173
 npm run report         # open the last HTML report
 ```
+
+## Configuration
+
+```bash
+cp .env.example .env
+```
+
+- `DISCREPANCY_TOLERANCE` — global default tolerance (decimal, e.g. `0.05` = 5%).
+  Falls back to `0.05` if unset.
+- Per-carrier overrides live in `CARRIER_TOLERANCES` in `mock-api/server.js`
+  (e.g. a carrier with historically noisier invoicing can be given a wider band).
+- `API_PORT` — port the mock API listens on (default `4000`).
+
+## Roles
+
+The UI includes an "Acting as" selector (Agent / Manager), which is sent to
+the API as an `x-user-role` header. A shipment flagged with a discrepancy
+can only be approved or rejected by a `manager`; an `agent` can freely
+action non-flagged shipments. This is a mock authorization layer for
+demonstration purposes only — there's no real login/session system.
 
 ## Background
 

@@ -1,0 +1,57 @@
+name: Performance Tests
+
+# Runs the k6 perf suite against the mock API. This is deliberately NOT wired
+# into push/PR — performance tests shouldn't gate every merge. Triggered
+# manually, or on a weekly schedule to catch regressions over time.
+on:
+  workflow_dispatch:
+    inputs:
+      test:
+        description: 'Which perf test to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - load
+  schedule:
+    - cron: '0 3 * * 1' # every Monday at 03:00 UTC
+
+jobs:
+  k6:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start downstream rate-lookup service
+        run: node mock-api/downstream/rate-service.js &
+
+      - name: Start mock API
+        run: node mock-api/server.js &
+
+      - name: Wait for API to be ready
+        run: npx wait-on http://localhost:4001/carrier-tolerance/test http://localhost:4000/shipments
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Run smoke test
+        if: github.event_name == 'schedule' || github.event.inputs.test == 'smoke'
+        run: npm run test:perf:smoke
+
+      - name: Run load test
+        if: github.event.inputs.test == 'load'
+        run: npm run test:perf:load

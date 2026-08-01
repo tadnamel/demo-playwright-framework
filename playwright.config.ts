@@ -32,6 +32,11 @@ export default defineConfig({
   ],
   webServer: [
     {
+      command: 'node mock-api/downstream/rate-service.js',
+      port: 4001,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
       command: 'node mock-api/server.js',
       port: 4000,
       reuseExistingServer: !process.env.CI,

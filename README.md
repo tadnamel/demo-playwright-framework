@@ -34,6 +34,10 @@ tooling, the same testing patterns and architecture I use professionally.
 - **Page Object Model** for the UI layer (`src/pages`)
 - **Custom Playwright fixtures**, including automatic backend state reset
   between tests for isolation (`src/fixtures`)
+- **Allure reporting with step-level screenshots**: every UI action goes
+  through a `step()` helper (`src/utils/allureStep.ts`) that reports it as a
+  named Allure step with a screenshot attached — automatic for every test,
+  with no changes needed in the test files themselves
 - **API-level testing** of the same business rules, independent of the UI
   (`test-suites/api`)
 - **Regression vs. smoke separation** using Playwright tags (`@smoke`), with
@@ -55,6 +59,7 @@ mock-api/
 src/
   pages/          # Page objects
   fixtures/       # Custom Playwright fixtures (incl. API-based state reset)
+  utils/allureStep.ts  # Wraps page actions in named Allure steps + screenshots
 test-suites/
   e2e/            # UI workflow tests (list, add shipment, flag, approve/reject)
   api/            # HTTP-level tests for the same business rules
@@ -71,7 +76,8 @@ npm test              # full regression suite (UI + API), auto-starts mock serve
 npm run test:smoke    # smoke subset only
 npm run test:api      # API suite only
 npm run dev            # run rate-service + API + app manually in the browser at localhost:5173
-npm run report         # open the last HTML report
+npm run report         # open the last Playwright HTML report
+npm run report:allure  # generate + open the Allure report (see "Test Reporting" below)
 ```
 
 ## Configuration
@@ -98,6 +104,37 @@ the API as an `x-user-role` header. A shipment flagged with a discrepancy
 can only be approved or rejected by a `manager`; an `agent` can freely
 action non-flagged shipments. This is a mock authorization layer for
 demonstration purposes only — there's no real login/session system.
+
+## Test Reporting (Allure)
+
+Alongside Playwright's built-in HTML reporter, the suite also produces an
+[Allure](https://allurereport.org/) report with step-level detail and a
+screenshot after every UI action.
+
+**How it works:** rather than annotating individual test files, every method
+on `ShipmentPage` (`src/pages/ShipmentPage.ts`) is wrapped in a small
+`step()` helper (`src/utils/allureStep.ts`) that reports the action as a
+named Allure step and attaches a screenshot taken right after it runs. So a
+test that just calls `shipmentPage.addShipment(...)` automatically produces
+a report entry like "Add shipment SHP-2001" with a screenshot — no
+Allure-specific code in the test files themselves.
+
+**Setup:** `allure-commandline` wraps the Java-based Allure CLI, so it needs
+a Java runtime (JRE or JDK) installed separately — any recent LTS (17 or 21)
+is fine. Check with `java -version`; if it's missing, install a JDK (e.g.
+[Eclipse Temurin](https://adoptium.net/)) first.
+
+```bash
+npm test                # generates allure-results/ alongside the usual reports
+npm run report:allure    # generate the static HTML report and open it
+```
+
+Or run the two steps separately:
+
+```bash
+npm run report:allure:generate   # allure-results/ -> allure-report/
+npm run report:allure:open       # opens allure-report/ in the browser
+```
 
 ## Performance Testing
 

@@ -12,12 +12,18 @@
     "test:smoke": "playwright test --grep @smoke",
     "test:api": "playwright test test-suites/api",
     "report": "playwright show-report",
+    "report:allure:generate": "allure generate allure-results --clean -o allure-report",
+    "report:allure:open": "allure open allure-report",
+    "report:allure": "npm run report:allure:generate && npm run report:allure:open",
     "test:perf:smoke": "k6 run perf/smoke-test.js",
     "test:perf:load": "k6 run perf/load-test.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
     "@types/node": "^20.14.0",
+    "allure-commandline": "^2.43.0",
+    "allure-js-commons": "^3.10.2",
+    "allure-playwright": "^3.10.2",
     "concurrently": "^8.2.2",
     "express": "^4.19.2",
     "http-server": "^14.1.1",

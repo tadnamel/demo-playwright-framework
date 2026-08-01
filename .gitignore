@@ -5,3 +5,7 @@ test-results/
 .auth/
 *.log
 .DS_Store
+
+# k6 performance test output (only produced when using --summary-export etc.)
+perf/results/
+*.summary.json

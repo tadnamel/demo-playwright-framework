@@ -246,6 +246,16 @@ Chosen over a self-hosted SonarQube specifically to avoid standing up and
 maintaining a server (+ DB) for a demo repo — CodeQL and Semgrep give
 comparable SAST coverage for a public GitHub project with no infra to run.
 
+Semgrep's `p/owasp-top-ten` ruleset also flagged the workflow files
+themselves — every `uses: action@v4`-style tag reference is a mutable ref
+that could be silently repointed by the action owner (a real supply-chain
+attack class, e.g. the `tj-actions/changed-files` compromise). All actions
+across all four workflows are now pinned to full commit SHAs with a
+trailing `# vX` comment for readability, and `.github/dependabot.yml`
+keeps them current — Dependabot understands SHA-pinned action refs and
+opens a PR to bump both the SHA and the version comment on new releases,
+so pinning doesn't mean silently going stale.
+
 **Dynamic scan** (`.github/workflows/dast.yml`, manual + weekly, **not**
 gating merges — same trigger shape as `performance.yml`) — an
 [OWASP ZAP](https://www.zaproxy.org/) API scan against the *running*

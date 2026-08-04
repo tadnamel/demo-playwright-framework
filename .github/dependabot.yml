@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Actions are pinned to full commit SHAs (see .github/workflows/security.yml
+  # for why — a Semgrep OWASP finding flagged mutable tag refs as a
+  # supply-chain risk). Dependabot understands SHA-pinned `uses:` refs and
+  # will open a PR bumping both the SHA and its trailing "# vX" comment
+  # whenever the pinned action publishes a new release — so pinning doesn't
+  # mean the actions go stale, it just means updates are reviewed via PR
+  # instead of pulled silently.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'

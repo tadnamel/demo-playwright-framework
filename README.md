@@ -45,6 +45,13 @@ tooling, the same testing patterns and architecture I use professionally.
 - **Self-hosting test target**: Playwright's `webServer` config boots both the
   mock API and the static app automatically, so the whole suite runs with
   a single `npm test`, no manual environment setup
+- **Accessibility testing**: axe-core scans (`@axe-core/playwright`) of key UI
+  states — default load, role switched, a new flagged row present, an inline
+  RBAC error visible — via a `checkA11y()` helper that reports into the same
+  Allure report as the functional suite
+- **Security testing**: static analysis (CodeQL + Semgrep) gating push/PR,
+  plus a scheduled OWASP ZAP API scan exercising the live RBAC/403/409 logic
+  in `mock-api/server.js` — see "Security Testing" below
 - **TypeScript** throughout, with path aliases for clean imports
 
 ## Structure
@@ -62,9 +69,14 @@ src/
   utils/allureStep.ts  # Wraps page actions in named Allure steps + screenshots
 test-suites/
   e2e/            # UI workflow tests (list, add shipment, flag, approve/reject)
+    a11y/         # axe-core accessibility scans of key UI states (@a11y)
   api/            # HTTP-level tests for the same business rules
+security/
+  openapi.yaml    # API definition used as the ZAP DAST scan target
 .github/workflows/
   playwright.yml  # CI: full regression on push/PR, smoke subset nightly
+  security.yml    # CI: CodeQL + Semgrep static analysis, push/PR + weekly
+  dast.yml        # CI: OWASP ZAP API scan against mock-api, manual + weekly (not gating)
 ```
 
 ## Getting started
@@ -75,6 +87,7 @@ npx playwright install --with-deps
 npm test              # full regression suite (UI + API), auto-starts mock servers
 npm run test:smoke    # smoke subset only
 npm run test:api      # API suite only
+npm run test:a11y     # accessibility suite only (axe-core)
 npm run dev            # run rate-service + API + app manually in the browser at localhost:5173
 npm run report         # open the last Playwright HTML report
 npm run report:allure  # generate + open the Allure report (see "Test Reporting" below)
@@ -190,6 +203,63 @@ fallback/timeout logic hold up under real errors and slow responses:
 curl -X POST http://localhost:4001/__chaos/enable
 npm run test:perf:load
 curl -X POST http://localhost:4001/__chaos/disable
+```
+
+## Accessibility Testing
+
+Accessibility scans live in `test-suites/e2e/a11y/`, using
+[axe-core](https://github.com/dequelabs/axe-core) via
+`@axe-core/playwright`, wrapped in a `checkA11y()` helper
+(`src/utils/axeCheck.ts`) that mirrors the existing `step()` pattern: each
+scan reports as a named Allure step and attaches the full axe JSON results,
+so a clean run is still visible in the report, not just failures.
+
+Rather than scanning only the initial page load, each test scans a
+distinct UI state — default load, manager role active, a newly-added
+flagged row, an inline RBAC error message — since dynamically-injected
+content (error banners, new rows) is exactly what a single static scan
+would miss.
+
+```bash
+npm run test:a11y
+```
+
+By default, `serious`/`critical` axe violations fail the test;
+`moderate`/`minor` findings are attached and visible in the report without
+failing the run. This suite runs as part of the regular `e2e` project (and
+therefore `npm test`/CI), tagged `@a11y` so it can also be run or excluded
+independently.
+
+## Security Testing
+
+Two layers, kept separate because they have very different cost/signal
+profiles:
+
+**Static analysis** (`.github/workflows/security.yml`, gates push/PR +
+weekly) — no servers involved, just source:
+
+- **CodeQL** — GitHub's native SAST, zero setup, free for public repos.
+- **Semgrep** (`p/owasp-top-ten`, `p/javascript`, `p/expressjs` rulesets)
+  via `semgrep ci`, run with no Semgrep account/token needed.
+
+Chosen over a self-hosted SonarQube specifically to avoid standing up and
+maintaining a server (+ DB) for a demo repo — CodeQL and Semgrep give
+comparable SAST coverage for a public GitHub project with no infra to run.
+
+**Dynamic scan** (`.github/workflows/dast.yml`, manual + weekly, **not**
+gating merges — same trigger shape as `performance.yml`) — an
+[OWASP ZAP](https://www.zaproxy.org/) API scan against the *running*
+mock-api, using `security/openapi.yaml` as the scan target. This actually
+calls the endpoints (verb tampering, parameter fuzzing, missing/garbage
+`x-user-role` values) against the live discrepancy/RBAC/409 logic in
+`mock-api/server.js`, rather than just reading the source. `fail_action` is
+off for now — findings show up in the uploaded report/artifact without
+failing the run, until the ruleset's been tuned against this specific app.
+
+```bash
+# to run the same scan locally, with rate-service + mock-api already up:
+docker run -v $(pwd):/zap/wrk/:rw -t zaproxy/zap-stable \
+  zap-api-scan.py -t /zap/wrk/security/openapi.yaml -f openapi
 ```
 
 ## Background

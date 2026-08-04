@@ -11,6 +11,7 @@
     "test:regression": "playwright test --grep-invert @smoke",
     "test:smoke": "playwright test --grep @smoke",
     "test:api": "playwright test test-suites/api",
+    "test:a11y": "playwright test --grep @a11y",
     "report": "playwright show-report",
     "report:allure:generate": "allure generate allure-results --clean -o allure-report",
     "report:allure:open": "allure open allure-report",
@@ -19,6 +20,7 @@
     "test:perf:load": "k6 run perf/load-test.js"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
     "@playwright/test": "^1.48.0",
     "@types/node": "^20.14.0",
     "allure-commandline": "^2.43.0",

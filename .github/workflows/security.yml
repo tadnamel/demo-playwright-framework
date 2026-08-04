@@ -1,0 +1,45 @@
+name: Security (SAST)
+
+# Static analysis only — no servers are booted, nothing here depends on
+# mock-api/mock-app running. Mirrors playwright.yml's trigger shape (push/PR
+# gate the merge) since these are fast, zero-infra checks; the heavier
+# ZAP DAST pass lives in dast.yml on its own, non-gating schedule.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1' # weekly, Monday 06:00 UTC
+
+jobs:
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'
+
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      # `semgrep ci` without SEMGREP_APP_TOKEN runs fully locally against
+      # the given rulesets (no Semgrep Cloud account needed) and exits
+      # non-zero on findings, which is all we need for a public demo repo.
+      - name: Run Semgrep
+        run: semgrep ci --config=p/owasp-top-ten --config=p/javascript --config=p/expressjs

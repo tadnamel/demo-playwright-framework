@@ -45,6 +45,8 @@ tooling, the same testing patterns and architecture I use professionally.
 - **Self-hosting test target**: Playwright's `webServer` config boots both the
   mock API and the static app automatically, so the whole suite runs with
   a single `npm test`, no manual environment setup
+- **One-command Docker run**: clone the repo, run `docker compose up --build`,
+  open `playwright-report/index.html` — no Node, no browser installs needed
 - **Accessibility testing**: axe-core scans (`@axe-core/playwright`) of key UI
   states — default load, role switched, a new flagged row present, an inline
   RBAC error visible — via a `checkA11y()` helper that reports into the same
@@ -77,20 +79,46 @@ security/
   playwright.yml  # CI: full regression on push/PR, smoke subset nightly
   security.yml    # CI: CodeQL + Semgrep static analysis, push/PR + weekly
   dast.yml        # CI: OWASP ZAP API scan against mock-api, manual + weekly (not gating)
+Dockerfile        # Single-image build — Playwright + browsers + all dependencies
+docker-compose.yml  # Mounts playwright-report/ back to host; one-command run
 ```
 
-## Getting started
+## Quick start (Docker)
+
+The only prerequisite is [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+```bash
+git clone https://github.com/tadnamel/demo-playwright-framework.git
+cd demo-playwright-framework
+docker compose up --build
+```
+
+The first build pulls the Playwright base image and installs dependencies (~2 min
+on a typical connection). Subsequent runs skip those layers and start in seconds.
+
+When the container exits, open `playwright-report/index.html` in your browser
+to see the full test report with traces and screenshots on any failure.
+
+To run a specific subset:
+
+```bash
+docker compose run --rm tests npm run test:smoke
+docker compose run --rm tests npm run test:api
+docker compose run --rm tests npm run test:a11y
+```
+
+## Getting started (without Docker)
 
 ```bash
 npm install
-npx playwright install --with-deps
+npx playwright install --with-deps chromium
 npm test              # full regression suite (UI + API), auto-starts mock servers
 npm run test:smoke    # smoke subset only
 npm run test:api      # API suite only
 npm run test:a11y     # accessibility suite only (axe-core)
-npm run dev            # run rate-service + API + app manually in the browser at localhost:5173
-npm run report         # open the last Playwright HTML report
-npm run report:allure  # generate + open the Allure report (see "Test Reporting" below)
+npm run dev           # run rate-service + API + app manually in the browser at localhost:5173
+npm run report        # open the last Playwright HTML report
+npm run report:allure # generate + open the Allure report (see "Test Reporting" below)
 ```
 
 ## Configuration

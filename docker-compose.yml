@@ -1,0 +1,20 @@
+services:
+  tests:
+    build: .
+
+    # --ipc=host is required for Chromium inside Docker — without it,
+    # Chromium's shared-memory usage can cause it to crash or OOM.
+    ipc: host
+
+    # --init gives the container a proper PID 1 so Node child processes
+    # (rate-service, mock-api, http-server) are reaped cleanly on exit.
+    init: true
+
+    # Mount the output directories back to the host so the hiring manager
+    # can open the HTML report without copying files out of the container.
+    # allure-results is included so `npm run report:allure` works locally
+    # afterwards if they have Java/Allure installed.
+    volumes:
+      - ./playwright-report:/app/playwright-report
+      - ./test-results:/app/test-results
+      - ./allure-results:/app/allure-results

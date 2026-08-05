@@ -1,0 +1,25 @@
+# node_modules is always rebuilt inside the container from package-lock.json,
+# so exclude it from the build context — sending it would be slow (~200MB)
+# and would overwrite the Linux-native binaries installed by `npm ci`.
+node_modules/
+
+# Output directories — these are mounted back to the host via docker-compose
+# volumes. Don't copy them in (stale results from a previous local run
+# would land inside the container alongside the fresh run's output).
+playwright-report/
+test-results/
+allure-report/
+allure-results/
+
+# k6 perf tests and output — not part of the Playwright suite
+perf/
+
+# Git history and CI config aren't needed at runtime
+.git/
+.github/
+
+# Local env overrides (container gets its env from docker-compose)
+.env
+
+# macOS noise
+.DS_Store

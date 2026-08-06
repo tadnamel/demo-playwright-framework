@@ -6,6 +6,13 @@
 # @playwright/test in package.json; update both together.
 FROM mcr.microsoft.com/playwright:v1.61.1-noble
 
+# Install Java so allure-commandline (already an npm devDependency) can
+# generate the Allure report after the test run. default-jre-headless is
+# the smallest JRE available on Ubuntu Noble.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    default-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Install dependencies first so this layer is cached separately from source
@@ -24,7 +31,8 @@ COPY . .
 #     is correct inside a container where nothing is pre-running)
 ENV CI=true
 
-# Default entrypoint runs the full regression suite. Override at `docker run`
-# or in docker-compose to run a specific subset, e.g.:
-#   docker compose run --rm tests npm run test:smoke
-CMD ["npm", "test"]
+COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Override at `docker compose run --rm tests npm run test:smoke` etc.
+CMD ["/docker-entrypoint.sh"]

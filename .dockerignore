@@ -11,6 +11,10 @@ test-results/
 allure-report/
 allure-results/
 
+# Allure history snapshots — host-side volume for trend graphs, not part of
+# the image build.
+allure-history/
+
 # k6 perf tests and output — not part of the Playwright suite
 perf/
 

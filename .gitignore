@@ -13,3 +13,5 @@ perf/results/
 # Allure
 allure-results/
 allure-report/
+# Allure history snapshots — Docker volume, run-specific, not for source control
+allure-history/

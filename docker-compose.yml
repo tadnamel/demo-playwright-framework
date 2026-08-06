@@ -10,11 +10,26 @@ services:
     # (rate-service, mock-api, http-server) are reaped cleanly on exit.
     init: true
 
-    # Mount the output directories back to the host so the hiring manager
-    # can open the HTML report without copying files out of the container.
-    # allure-results is included so `npm run report:allure` works locally
-    # afterwards if they have Java/Allure installed.
+    # Expose the Allure report server to open it
+    # in browser at http://localhost:4242 once the run completes.
+    ports:
+      - "4242:4242"
+
     volumes:
-      - ./playwright-report:/app/playwright-report
-      - ./test-results:/app/test-results
+      # allure-results/ — test XML written here by Playwright; mounted so
+      # the entrypoint script can clean it between runs from inside the
+      # container, and so it's visible on the host if needed.
       - ./allure-results:/app/allure-results
+
+      # allure-report/ — generated HTML report; mounted so it persists on
+      # the host after the container exits (useful if the browser is opened
+      # after Ctrl+C rather than while the server is still running).
+      - ./allure-report:/app/allure-report
+
+      # allure-history/ — Allure history snapshots that survive container
+      # restarts. The entrypoint script reads from here before each run and
+      # writes back after, so the trend graph grows with every run.
+      - ./allure-history:/app/allure-history
+
+      # test-results/ — Playwright trace files and test attachments.
+      - ./test-results:/app/test-results

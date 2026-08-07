@@ -32,7 +32,7 @@ COPY . .
 ENV CI=true
 
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN dos2unix /docker-entrypoint.sh 2>/dev/null || sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 # Run as non-root. The Playwright base image ships a `pwuser` (uid 1001)
 # specifically for this — its browsers under /ms-playwright are already

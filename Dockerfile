@@ -34,5 +34,13 @@ ENV CI=true
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+# Run as non-root. The Playwright base image ships a `pwuser` (uid 1001)
+# specifically for this — its browsers under /ms-playwright are already
+# readable by pwuser, so no extra permission wiring is needed there. /app
+# does need to be owned by pwuser since the entrypoint script writes test
+# results into it at runtime (allure-results, test-results, etc.).
+RUN chown -R pwuser:pwuser /app
+USER pwuser
+
 # Override at `docker compose run --rm tests npm run test:smoke` etc.
 CMD ["/docker-entrypoint.sh"]

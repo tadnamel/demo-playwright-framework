@@ -12,6 +12,34 @@ and contains no code or data from, any employer or client system. It
 exists to demonstrate, in a domain similar to freight-audit / logistics
 tooling, the same testing patterns and architecture I use professionally.
 
+## Quick start (Docker)
+
+The only prerequisite is [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+> Trouble getting Docker running? See [Troubleshooting](#troubleshooting) below.
+
+```bash
+git clone https://github.com/tadnamel/demo-playwright-framework.git
+cd demo-playwright-framework
+docker compose up --build
+```
+
+First build downloads the Playwright base image and installs dependencies
+(~2–4 min). Subsequent runs reuse cached layers and start in seconds.
+
+**What happens:** previous results are cleaned → Allure history is restored
+→ the full suite runs (UI + API + a11y) → an Allure report is generated and
+served at **http://localhost:4242** → history is saved back for the next
+run's trend graph. Press `Ctrl+C` to stop the report server when done.
+
+**Running a specific subset:**
+
+```bash
+docker compose run --rm tests npm run test:smoke
+docker compose run --rm tests npm run test:api
+docker compose run --rm tests npm run test:a11y
+```
+
 ## What this demonstrates
 
 - **End-to-end business logic testing**: discrepancy-flagging rules, approve/reject
@@ -34,13 +62,8 @@ tooling, the same testing patterns and architecture I use professionally.
 - **Page Object Model** for the UI layer (`src/pages`)
 - **Custom Playwright fixtures**, including automatic backend state reset
   between tests for isolation (`src/fixtures`)
-- **Allure reporting with step-level screenshots**: every UI action goes
-  through a `step()` helper (`src/utils/allureStep.ts`) that reports it as a
-  named Allure step with a screenshot attached — automatic for every test,
-  with no changes needed in the test files themselves
-- **Allure trend graphs**: the Docker setup persists Allure history across
-  runs via a local `allure-history/` volume — the trend and retry charts
-  grow with each `docker compose up` without any manual steps
+- **Allure reporting with step-level screenshots**, generated automatically
+  with no changes needed in the test files — see [Test Reporting](#test-reporting-allure)
 - **API-level testing** of the same business rules, independent of the UI
   (`test-suites/api`)
 - **Regression vs. smoke separation** using Playwright tags (`@smoke`), with
@@ -50,16 +73,15 @@ tooling, the same testing patterns and architecture I use professionally.
   a single `npm test`, no manual environment setup
 - **One-command Docker run**: clone the repo, run `docker compose up --build`,
   open the Allure report at `http://localhost:4242` — no Node, no browser installs needed
-- **Accessibility testing**: axe-core scans (`@axe-core/playwright`) of key UI
-  states — default load, role switched, a new flagged row present, an inline
-  RBAC error visible — via a `checkA11y()` helper that reports into the same
-  Allure report as the functional suite
+- **Accessibility testing**: axe-core scans of key UI states, reporting into
+  the same Allure report — see [Accessibility Testing](#accessibility-testing)
 - **Security testing**: static analysis (CodeQL + Semgrep) gating push/PR,
-  plus a scheduled OWASP ZAP API scan exercising the live RBAC/403/409 logic
-  in `mock-api/server.js` — see [Security Testing](#security-testing) below
+  plus a scheduled OWASP ZAP API scan — see [Security Testing](#security-testing)
 - **TypeScript** throughout, with path aliases for clean imports
 
-## Structure
+<a name="project-structure"></a>
+<details>
+<summary><strong>📁 Project structure</strong></summary>
 
 ```
 mock-app/         # Small original front-end (HTML/CSS/JS) — the system under test
@@ -89,50 +111,11 @@ Dockerfile        # Playwright + Java (for Allure) + all Node dependencies
 docker-compose.yml  # Ports, volumes (results, report, history), one-command run
 ```
 
----
+</details>
 
-## Quick start (Docker)
-
-The only prerequisite is [Docker Desktop](https://www.docker.com/products/docker-desktop/).
-
-> ⚠️ **Having trouble getting Docker running?** See [Troubleshooting](#troubleshooting) below — common issues on Windows (no Hyper-V, WSL 2 not installed, virtualization off) are covered with step-by-step fixes.
-
-```bash
-git clone https://github.com/tadnamel/demo-playwright-framework.git
-cd demo-playwright-framework
-docker compose up --build
-```
-
-The first build downloads the Playwright base image and installs
-dependencies (~2–4 min depending on connection speed). Subsequent runs
-reuse the cached image layers and start in seconds.
-
-**What happens when you run it:**
-
-1. Previous test results are cleaned so only the current run appears in the report
-2. Allure history from prior runs is restored so the **trend graph** extends automatically
-3. The full Playwright suite runs (UI + API + a11y)
-4. An Allure report is generated and served at **http://localhost:4242**
-5. The history is saved back to `allure-history/` so the next run adds to the trend
-
-When the run completes, open **http://localhost:4242** in your browser.
-The report includes step-level detail, screenshots on every UI action, and
-— after the second run — a trend graph showing pass/fail history over time.
-
-Press `Ctrl+C` to stop the report server when you're done.
-
-**Running a specific subset:**
-
-```bash
-# These override the default CMD and skip the report server — just runs tests
-docker compose run --rm tests npm run test:smoke
-docker compose run --rm tests npm run test:api
-docker compose run --rm tests npm run test:a11y
-```
-
----
-
-## Is it safe to run `docker compose up --build`?
+<a name="docker-safety"></a>
+<details>
+<summary><strong>🔒 Is it safe to run <code>docker compose up --build</code>?</strong> — a line-by-line trust breakdown of the Dockerfile and compose file, plus how to verify any Docker command yourself</summary>
 
 Docker is a powerful tool, and commands shared on the internet deserve
 scrutiny — a malicious `docker run` can compromise a host as effectively
@@ -158,7 +141,8 @@ rather than taking it on trust.
 published by Microsoft to their own registry (not Docker Hub). The full
 image tag is pinned to a specific version — no floating `latest`. Beyond
 adding Java (for Allure report generation), `npm ci`, and copying source
-files, it does nothing else. Read the whole file in under 25 lines.
+files, it does nothing else. Read the whole file in under 25 lines. It also
+runs as a non-root user (`pwuser`, shipped by the base image) rather than root.
 
 **`docker-compose.yml`** — every field is documented inline. The options used are:
 
@@ -203,9 +187,11 @@ in the repo root — it is 30 lines long.
 5. If in doubt, run `docker compose config` first — it prints the fully
    resolved configuration with no side effects.
 
----
+</details>
 
-## Troubleshooting
+<a name="troubleshooting"></a>
+<details>
+<summary><strong>🛠️ Troubleshooting</strong> — Docker Desktop not running, Windows Home/Hyper-V, WSL 2 setup, port conflicts, and other first-run issues</summary>
 
 Common issues when running `docker compose up --build` for the first time,
 particularly on Windows.
@@ -300,9 +286,11 @@ Subsequent runs skip the cached layers and complete in seconds. If the pull
 appears to hang for more than 10 minutes, check your network connection and
 try `docker compose up --build` again — Docker resumes interrupted pulls.
 
----
+</details>
 
-## Getting started (without Docker)
+<a name="without-docker"></a>
+<details>
+<summary><strong>💻 Running without Docker</strong></summary>
 
 ```bash
 npm install
@@ -315,6 +303,8 @@ npm run dev           # run rate-service + API + app manually in the browser at 
 npm run report        # open the last Playwright HTML report
 npm run report:allure # generate + open the Allure report (see "Test Reporting" below)
 ```
+
+</details>
 
 ## Configuration
 
@@ -339,7 +329,9 @@ can only be approved or rejected by a `manager`; an `agent` can freely
 action non-flagged shipments. This is a mock authorization layer for
 demonstration purposes only — there's no real login/session system.
 
-## Test Reporting (Allure)
+<a name="test-reporting-allure"></a>
+<details>
+<summary><strong>📊 Test Reporting (Allure)</strong> — step-level detail, screenshots, and trend graphs across runs</summary>
 
 Alongside Playwright's built-in HTML reporter, the suite produces an
 [Allure](https://allurereport.org/) report with step-level detail and a
@@ -365,7 +357,11 @@ npm test                       # generates allure-results/
 npm run report:allure          # generate allure-report/ and open in browser
 ```
 
-## Performance Testing
+</details>
+
+<a name="performance-testing"></a>
+<details>
+<summary><strong>⚡ Performance Testing</strong> — k6 smoke/load suite against the mock API</summary>
 
 A small [k6](https://k6.io/) suite lives in `perf/`, exercising the mock API's
 read and write paths under load — separate from the Playwright functional suite.
@@ -393,7 +389,11 @@ npm run test:perf:load
 curl -X POST http://localhost:4001/__chaos/disable
 ```
 
-## Accessibility Testing
+</details>
+
+<a name="accessibility-testing"></a>
+<details>
+<summary><strong>♿ Accessibility Testing</strong> — axe-core scans of key UI states</summary>
 
 Scans in `test-suites/e2e/a11y/` use axe-core via `@axe-core/playwright`,
 wrapped in `checkA11y()` (`src/utils/axeCheck.ts`). Each test scans a
@@ -409,7 +409,11 @@ npm run test:a11y
 docker compose run --rm tests npm run test:a11y
 ```
 
-## Security Testing
+</details>
+
+<a name="security-testing"></a>
+<details>
+<summary><strong>🛡️ Security Testing</strong> — CodeQL + Semgrep static analysis (gates PR/push), OWASP ZAP dynamic scan (scheduled)</summary>
 
 **Static analysis** (`.github/workflows/security.yml`, gates push/PR + weekly):
 
@@ -422,6 +426,8 @@ auto-opens PRs to bump SHAs when new versions ship.
 
 **Dynamic scan** (`.github/workflows/dast.yml`, manual + weekly, not gating):
 OWASP ZAP API scan against the running mock-api using `security/openapi.yaml`.
+
+</details>
 
 ## Background
 

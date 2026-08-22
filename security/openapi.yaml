@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: CargoAudit Lite mock API
+  description: >
+    OpenAPI definition for the mock-api surface, used only to give the ZAP
+    DAST scan (.github/workflows/dast.yml) a concrete set of endpoints,
+    methods, and parameters to exercise in API-scan mode — this is not a
+    hand-maintained contract for the app itself (there's no schema
+    validation tied to it), just a scan target definition.
+  version: '1.0'
+servers:
+  - url: http://localhost:4000
+paths:
+  /shipments:
+    get:
+      operationId: listShipments
+      parameters:
+        - $ref: '#/components/parameters/UserRole'
+      responses:
+        '200':
+          description: All shipments with computed discrepancy status
+    post:
+      operationId: createShipment
+      parameters:
+        - $ref: '#/components/parameters/UserRole'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewShipment'
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Missing fields or negative cost
+  /shipments/{id}:
+    get:
+      operationId: getShipment
+      parameters:
+        - $ref: '#/components/parameters/ShipmentId'
+        - $ref: '#/components/parameters/UserRole'
+      responses:
+        '200':
+          description: Shipment with computed discrepancy status
+        '404':
+          description: Not found
+    delete:
+      operationId: deleteShipment
+      parameters:
+        - $ref: '#/components/parameters/ShipmentId'
+        - $ref: '#/components/parameters/UserRole'
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+  /shipments/{id}/approve:
+    patch:
+      operationId: approveShipment
+      parameters:
+        - $ref: '#/components/parameters/ShipmentId'
+        - $ref: '#/components/parameters/UserRole'
+      responses:
+        '200':
+          description: Approved
+        '403':
+          description: Flagged shipment actioned by a non-manager role
+        '404':
+          description: Not found
+        '409':
+          description: Already actioned
+  /shipments/{id}/reject:
+    patch:
+      operationId: rejectShipment
+      parameters:
+        - $ref: '#/components/parameters/ShipmentId'
+        - $ref: '#/components/parameters/UserRole'
+      responses:
+        '200':
+          description: Rejected
+        '403':
+          description: Flagged shipment actioned by a non-manager role
+        '404':
+          description: Not found
+        '409':
+          description: Already actioned
+  /audit-log:
+    get:
+      operationId: getAuditLog
+      parameters:
+        - $ref: '#/components/parameters/UserRole'
+      responses:
+        '200':
+          description: Full audit log
+components:
+  parameters:
+    ShipmentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    UserRole:
+      name: x-user-role
+      in: header
+      required: false
+      schema:
+        type: string
+        enum: [agent, manager]
+  schemas:
+    NewShipment:
+      type: object
+      required: [reference, carrier, quotedCost, invoicedCost]
+      properties:
+        reference:
+          type: string
+        carrier:
+          type: string
+        quotedCost:
+          type: number
+        invoicedCost:
+          type: number

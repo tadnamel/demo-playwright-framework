@@ -1,0 +1,12 @@
+{
+  "mode": "off",
+  "testops": {
+    "project": "CARGO",
+    "uploadAttachments": true,
+    "defect": false,
+    "run": {
+      "title": "CargoAudit Lite automated run",
+      "complete": true
+    }
+  }
+}

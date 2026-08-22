@@ -1,0 +1,41 @@
+{
+  "name": "cargoaudit-lite",
+  "version": "1.0.0",
+  "description": "Sample freight-cost-audit web app with a Playwright Web + API test automation framework, demonstrating page-object architecture, discrepancy-flagging business logic, regression/smoke test separation, and CI integration.",
+  "scripts": {
+    "start:api": "node mock-api/server.js",
+    "start:rate-service": "node mock-api/downstream/rate-service.js",
+    "start:app": "npx http-server mock-app -p 5173 -s",
+    "dev": "concurrently \"npm run start:rate-service\" \"npm run start:api\" \"npm run start:app\"",
+    "test": "playwright test",
+    "test:regression": "playwright test --grep-invert @smoke",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:api": "playwright test test-suites/api",
+    "test:a11y": "playwright test --grep @a11y",
+    "report": "playwright show-report",
+    "report:allure:generate": "allure generate allure-results --clean -o allure-report",
+    "report:allure:open": "allure open allure-report",
+    "report:allure": "npm run report:allure:generate && npm run report:allure:open",
+    "test:perf:smoke": "k6 run perf/smoke-test.js",
+    "test:perf:load": "k6 run perf/load-test.js",
+    "qase:setup": "node scripts/qase-setup.mjs",
+    "test:qase": "cross-env QASE_MODE=testops playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^20.14.0",
+    "allure-commandline": "^2.43.0",
+    "allure-js-commons": "^3.10.2",
+    "allure-playwright": "^3.10.2",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "http-server": "^14.1.1",
+    "playwright-qase-reporter": "^2.5.5",
+    "typescript": "^5.5.0",
+    "undici": "^8.9.0"
+  },
+  "license": "MIT"
+}
